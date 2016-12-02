@@ -1,0 +1,68 @@
+Microsoft (R) Macro Assembler Version 11.00.50727.1	    02/11/15 15:29:14
+main.asm						     Page 1 - 1
+
+
+				; general comments
+				; This version is compatible with Visual Studio 2012 and Visual C++ Express Edition 2012
+
+				; preprocessor directives
+				.586
+				.MODEL FLAT
+
+				; external files to link with
+
+				; stack configuration
+				.STACK 4096
+
+				; named memory allocation and initialization
+ 00000000			.DATA
+
+				; procedure code
+ 00000000			.CODE
+ 00000000			main	PROC
+
+ 00000000  B8 00000000			mov eax, 0
+ 00000005  C3				ret
+ 00000006			main	ENDP
+
+				END
+	
+Microsoft (R) Macro Assembler Version 11.00.50727.1	    02/11/15 15:29:14
+main.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000000 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000006 Para	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000006 Public
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000000h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+
+	   0 Warnings
+	   0 Errors
