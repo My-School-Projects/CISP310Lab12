@@ -43,7 +43,8 @@ main	PROC
 	; The same algorithm implemented with a stack is as follows
 	;
 	; root := 1.0
-	; repeat
+	; 
+	; loop
 	;
 	;	push root
 	;	push root
@@ -140,8 +141,45 @@ main	PROC
 	;
 	; repeat if ST(0) >= ST(1)
 	;
-
-
+	; ------------------------------------------------
+	; compressed version
+	;
+	; root := 1.0
+	;
+	; loop
+	;
+	;	push root
+	;	push root
+	;
+	;	multiply
+	;
+	;	push x
+	;
+	;	divide
+	;
+	;	push root
+	;	push 2.0
+	;
+	;	multiply
+	;	add
+	;
+	;	push 3.0
+	;
+	;	divide
+	;
+	;	oldRoot := root
+	;	root := ST(0)
+	;
+	;	push oldRoot
+	;
+	;	subtract
+	;	absolute value
+	;
+	;	push accuracyThreshold
+	;
+	;	compare ST(0) to ST(1)
+	;
+	; repeat if ST(0) >= ST(1)
 
 
 	mov eax, 0
