@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 11.00.50727.1	    02/11/15 15:29:14
+Microsoft (R) Macro Assembler Version 11.00.61030.0	    12/01/16 19:28:04
 main.asm						     Page 1 - 1
 
 
@@ -16,18 +16,281 @@ main.asm						     Page 1 - 1
 
 				; named memory allocation and initialization
  00000000			.DATA
+					
+					; This is the number we will be trying to find the cube root of
+					
+ 00000000 42800000			numberToBeCubeRooted REAL4 64.0
+					
+					; The accuracy threshold dictates how exact our answer will be.
+					; Our algorithm will take logarithmically smaller steps as it approaches
+					; the answer, and the accuracy threshold dictates how small those steps will
+					; become before we are satisifed with our answer.
+					; This should be a very small number. The smaller the number, the more steps
+					; will be taken to converge on the answer. More steps = more time = more accurate answer.
+					
+ 00000004 3A83126F			accuracyThreshold REAL4 0.001
+
+					; currentRoot is used in the algorithm to hold the current best estimate of the cube root
+
+ 00000008 3F800000			currentRoot REAL4 1.0
+
+					; oldRoot is used in the algorithm to hold the best estimate of the cube root
+					; from the previous iteration
+
+ 0000000C 00000000			oldRoot REAL4 0.0
+
+					; These two constants are needed in the algorithm
+
+ 00000010 40000000			constTwo	REAL4 2.0
+ 00000014 40400000			constThree	REAL4 3.0
+					
+					; This will be used to unload the stack - we won't read from here,
+					; we'll only write to it and we don't care what the values are
+
+ 00000018 00000000			junkMemory	REAL4 0.0
 
 				; procedure code
  00000000			.CODE
  00000000			main	PROC
+					
+					; -------------------------------------------------------------------
+					; The algorithm for finding the cube root of a number x is as follows
+					;
+					; root := 1.0
+					; repeat
+					;	oldRoot := root
+					;	root := (2.0 * root + x / (root * root) ) / 3.0
+					; until ( |root - oldRoot| < accuracyThreshold)
+					;
+					; -------------------------------------------------------------------
+					; The same algorithm implemented with a stack is as follows
+					;
+					; root := 1.0
+					; 
+					; loop
+					;
+					;	push x
+					;	push root
+					;	push root
+					;
+					;	----------
+					;	ST(0) root
+					;	ST(1) root
+					;	ST(2) x
+					;	----------
+					;
+					;	multiply
+					;
+					;	-----------------
+					;	ST(0) root * root
+					;	ST(1) x
+					;	-----------------
+					;
+					;	divide
+					;
+					;	-----------------------
+					;	ST(0) x / (root * root)
+					;	-----------------------
+					;
+					;	push root
+					;	push 2.0
+					;
+					;	-----------------------
+					;	ST(0) 2.0
+					;	ST(1) root
+					;	ST(2) x / (root * root)
+					;	-----------------------
+					;	
+					;	multiply
+					;
+					;	-----------------------
+					;	ST(0) 2.0 * root
+					;	ST(1) x / (root * root)
+					;	-----------------------
+					;	
+					;	add
+					;
+					;	------------------------------------
+					;	ST(0) 2.0 * root + x / (root * root)
+					;	------------------------------------
+					;
+					;	push 3.0
+					;
+					;	------------------------------------
+					;	ST(0) 3.0
+					;	ST(1) 2.0 * root + x / (root * root)
+					;	------------------------------------
+					;
+					;	divide
+					;
+					;	--------------------------------------------
+					;	ST(0) (2.0 * root + x / (root * root)) / 3.0
+					;	--------------------------------------------
+					;
+					;	oldRoot := root
+					;	root := ST(0)
+					;
+					;	push oldRoot
+					;	
+					;	-------------
+					;	ST(0) oldRoot
+					;	ST(1) root
+					;	-------------
+					;
+					;	subtract
+					;
+					;	--------------------
+					;	ST(0) root - oldRoot
+					;	--------------------
+					;
+					;	absolute value
+					;
+					;	------------------------
+					;	ST(0) | root - oldRoot |
+					;	------------------------
+					;	
+					;	push accuracyThreshold
+					;
+					;	------------------------
+					;	ST(0) accuracyThreshold
+					;	ST(1) | root - oldRoot |
+					;	------------------------
+					;
+					;	compare ST(0) to ST(1)
+					;
+					; repeat if ST(0) >= ST(1)
+					;
+					; ------------------------------------------------
+					; compressed version
+					;
+					; root := 1.0
+					;
+					; loop
+					;
+					;	push x
+					;	push root
+					;	push root
+					;
+					;	multiply
+					;	divide
+					;
+					;	push root
+					;	push 2.0
+					;
+					;	multiply
+					;	add
+					;
+					;	push 3.0
+					;
+					;	divide
+					;
+					;	oldRoot := root
+					;	root := ST(0)
+					;
+					;	push oldRoot
+					;
+					;	subtract
+					;	absolute value
+					;
+					;	push accuracyThreshold
+					;
+					;	compare ST(0) to ST(1)
+					;
+					; repeat if ST(0) >= ST(1)
+					;
+					; -----------------------------------------------
 
- 00000000  B8 00000000			mov eax, 0
- 00000005  C3				ret
- 00000006			main	ENDP
+					; currentRoot = 1.0 ( defined in data section)
+
+ 00000000  9B DB E3			finit				; initialize the FPU
+
+ 00000003			beginLoop:
+					
+ 00000003  D9 05 00000000 R		fld numberToBeCubeRooted ; load a value onto the stack
+ 00000009  D9 05 00000008 R		fld currentRoot
+ 0000000F  D9 05 00000008 R		fld currentRoot
+
+					; ST(0) currentRoot
+					; ST(1) currentRoot
+					; ST(2) numberToBeCubeRooted
+
+ 00000015  DE C9			fmul				; ST(0) := ST(1) * ST(0)
+
+					; ST(0) currentRoot * currentRoot
+					; ST(1) numberToBeCubed
+
+ 00000017  DE F9			fdiv				; ST(0) := ST(1) / ST(0)
+
+					; ST(0) numberToBeCubeRooted / (currentRoot * currentRoot)
+
+ 00000019  D9 05 00000008 R		fld currentRoot
+ 0000001F  D9 05 00000010 R		fld constTwo
+
+					; ST(0) 2.0
+					; ST(1) currentRoot
+					; ST(2) numberToBeCubeRpoted / (currentRoot * currentRoot)
+
+ 00000025  DE C9			fmul				; ST(0) := ST(1) * ST(0)
+
+					; ST(0) 2.0 * currentRoot
+					; ST(1) numberToBeCubeRooted / (currentRoot * currentRoot)
+
+ 00000027  DE C1			fadd				; ST(0) := ST(1) + ST(0)
+
+					; ST(0) 2.0 * currentRoot + numberToBeCubeRooted / (currentRoot * currentRoot)
+
+ 00000029  D9 05 00000014 R		fld constThree
+
+					; ST(0) 3.0
+					; ST(0) 2.0 * currentRoot + numberToBeCubeRooted / (currentRoot * currentRoot)
+
+ 0000002F  DE F9			fdiv				; ST(0) := ST(1) / ST(0)
+
+					; ST(0) (2.0 * currentRoot + numberToBeCubeRooted / (currentRoot * currentRoot)) / 3.0
+
+					; oldRoot := currentRoot
+
+ 00000031  D9 05 00000008 R		fld currentRoot
+ 00000037  D9 1D 0000000C R		fstp oldRoot
+
+ 0000003D  D9 15 00000008 R		fst currentRoot	; currentRoot := (2.0 * currentRoot + numberToBeCubeRooted / (currentRoot * currentRoot)) / 3.0
+					
+					; | root - oldRoot | < accuracyThreshold ?
+
+ 00000043  D9 05 0000000C R		fld oldRoot
+
+					; ST(0) oldRoot
+					; ST(1) currentRoot
+
+ 00000049  DE E9			fsub				; ST(0) := ST(1) - ST(0)
+ 0000004B  D9 E1			fabs				; ST(0) := | ST(0) |
+
+					; ST(0) | currentRoot - oldRoot |
+
+ 0000004D  D9 05 00000004 R		fld accuracyThreshold
+
+					; ST(0) accuracyThreshold
+					; ST(1) | currentRoot - oldRoot |
+
+ 00000053  D8 D1			fcom				; ST(0) > ST(1) ?
+
+ 00000055  D9 1D 00000018 R		fstp junkMemory		; pop ST(0)
+ 0000005B  D9 1D 00000018 R		fstp junkMemory		; pop ST(0)
+					
+					; stack is now empty.
+
+ 00000061  9B DF E0			fstsw ax			; copy condition code bits to AX
+ 00000064  9E				sahf				; shift condition code bits to flags
+
+ 00000065  76 9C			jna beginLoop
+
+ 00000067  B8 00000000			mov eax, 0
+ 0000006C  C3				ret
+ 0000006D			main	ENDP
 
 				END
 	
-Microsoft (R) Macro Assembler Version 11.00.50727.1	    02/11/15 15:29:14
+Microsoft (R) Macro Assembler Version 11.00.61030.0	    12/01/16 19:28:04
 main.asm						     Symbols 2 - 1
 
 
@@ -39,15 +302,16 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000000 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000006 Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 0000001C Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000006D Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
 
                 N a m e                 Type     Value    Attr
 
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000006 Public
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000006D Public
+  beginLoop  . . . . . . . . . .	L Near	 00000003 _TEXT	
 
 
 Symbols:
@@ -63,6 +327,13 @@ Symbols:
 @fardata?  . . . . . . . . . . .	Text   	 FLAT
 @fardata . . . . . . . . . . . .	Text   	 FLAT
 @stack . . . . . . . . . . . . .	Text   	 FLAT
+accuracyThreshold  . . . . . . .	DWord	 00000004 _DATA	
+constThree . . . . . . . . . . .	DWord	 00000014 _DATA	
+constTwo . . . . . . . . . . . .	DWord	 00000010 _DATA	
+currentRoot  . . . . . . . . . .	DWord	 00000008 _DATA	
+junkMemory . . . . . . . . . . .	DWord	 00000018 _DATA	
+numberToBeCubeRooted . . . . . .	DWord	 00000000 _DATA	
+oldRoot  . . . . . . . . . . . .	DWord	 0000000C _DATA	
 
 	   0 Warnings
 	   0 Errors
