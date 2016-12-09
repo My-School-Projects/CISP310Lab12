@@ -15,7 +15,7 @@
 	
 	; This is the number we will be trying to find the cube root of
 	
-	numberToBeCubeRooted REAL4 64.0
+	numberToBeCubeRooted REAL4 4.3
 	
 	; The accuracy threshold dictates how exact our answer will be.
 	; Our algorithm will take logarithmically smaller steps as it approaches
